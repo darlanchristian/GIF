@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="gif.js"></script>
+    <script>
+        // Verifica se o gif.worker.js está disponível no caminho especificado
+        fetch('gif.worker.js')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('gif.worker.js não encontrado no caminho especificado');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                // Se o arquivo foi encontrado, carregue o script
+                var workerScript = URL.createObjectURL(blob);
+                var script = document.createElement('script');
+                script.src = workerScript;
+                document.head.appendChild(script);
+                console.log("gif.worker.js carregado com sucesso.");
+            })
+            .catch(error => {
+                console.error(error);
+            });
+    </script>
+</head>
+<body>
+    <canvas id="canvas1" width="100" height="100" style="display:none;"></canvas>
+    <canvas id="canvas2" width="100" height="100" style="display:none;"></canvas>
+    <canvas id="canvas3" width="100" height="100" style="display:none;"></canvas>
+    <canvas id="canvas4" width="100" height="100" style="display:none;"></canvas>
+    <img id="gif-output" src="" alt="GIF result" style="display:block; margin-top:10px;">
+    <a id="download-btn" style="display:none;">Download GIF</a>
+    <script>
+        // Função para desenhar no canvas e criar o GIF
+        function createGIF() {
+            // Verificando se a biblioteca GIF.js foi carregada
+            if (typeof GIF !== 'undefined') {
+                console.log("GIF.js carregado com sucesso.");
+
+                // Obtendo os elementos canvas
+                var canvases = [
+                    document.getElementById('canvas1'),
+                    document.getElementById('canvas2'),
+                    document.getElementById('canvas3'),
+                    document.getElementById('canvas4')
+                ];
+
+                var ctxs = canvases.map(canvas => canvas.getContext('2d', { willReadFrequently: true }));
+
+                // Cores dos quadrados
+                var colors = ['blue', 'red', 'green', 'yellow'];
+
+                // Desenhando quadrados de cores diferentes em cada canvas
+                for (let i = 0; i < colors.length; i++) {
+                    ctxs[i].fillStyle = colors[i];
+                    ctxs[i].fillRect(0, 0, 100, 100);
+                }
+
+                // Criando o GIF
+                var gif = new GIF({
+                    workers: 2,
+                    quality: 10,
+                    workerScript: 'gif.worker.js' // Especificando o script do worker
+                });
+
+                // Adicionando os canvas ao GIF
+                for (let i = 0; i < canvases.length; i++) {
+                    gif.addFrame(canvases[i], { delay: 500 });
+                }
+
+                // Evento de conclusão do GIF
+                gif.on('finished', function(blob) {
+                    console.log("GIF finalizado.");
+                    var gifURL = URL.createObjectURL(blob);
+                    document.getElementById('gif-output').src = gifURL;
+                    var downloadBtn = document.getElementById('download-btn');
+                    downloadBtn.href = gifURL;
+                    downloadBtn.download = 'animation.gif';
+                    downloadBtn.style.display = 'block';
+                });
+
+                // Renderizando o GIF
+                gif.render();
+                console.log("Renderização do GIF iniciada.");
+            } else {
+                console.error("GIF.js não foi carregado. Verifique os caminhos dos arquivos JavaScript.");
+            }
+        }
+
+        // Aguardar carregamento do gif.worker.js antes de criar o GIF
+        window.addEventListener('load', createGIF);
+    </script>
+</body>
+</html>
